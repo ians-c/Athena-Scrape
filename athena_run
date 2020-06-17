@@ -1,0 +1,51 @@
+clc;
+counter = [12500:20000];
+counter = counter';
+names = [];
+urls = [];
+taxonomies = [];
+entities=[];
+addresses = [];
+cities = [];
+states = [];
+zips = [];
+phones = [];
+success = 0;
+fail = 0;
+
+for i = 1:length(counter)
+    num = counter(i); 
+    num = num2str(num);
+    url_athena = ['https://' num '.portal.athenahealth.com'];
+    perc1=(i/length(counter))*100;
+    fprintf('Extracting %s....      Progress: %.2f%%\n',url_athena,perc1);
+    try
+        html_athena = webread(url_athena);
+        tree = htmlTree(html_athena);
+        selector = 'h1';
+        title = findElement(tree,selector);
+        title = title(2);
+        title = extractHTMLText(title);
+        pat = '<[^>]*>';
+        title = regexprep(title, pat, '');
+        match = ["Welcome to the ", " Patient Portal", 'Patient Information Center', 'Patient', 'Payment Confirmation'];
+        title = erase(title, match);
+    catch
+        title = [];
+        url_athena = [];
+    end
+    
+    names = [names; title];
+    url_athena = convertCharsToStrings(url_athena);
+    urls = [urls; url_athena];
+    
+end
+
+n = length(names);
+
+data
+
+table = horzcat(names, urls, entities,taxonomies,addresses, cities, states, zips, phones);
+table = array2table(table,...
+    'VariableNames', {'Name','Url','Entity','Specialty','Address','City', 'State','Zip Code','Phone'});
+table = sortrows(table,'Entity','MissingPlacement','last');
