@@ -1,0 +1,76 @@
+for i = 1:n
+    try
+        name1 = strrep(names(i), ' ','%20');
+        name1 = num2str(name1);
+        url_npi = ['https://npiprofile.com/?s=' name1];
+
+        html_npi = webread(url_npi);
+        tree_npi = htmlTree(html_npi);
+        str = extractHTMLText(tree_npi);
+        nocount = count(str,'NO ');
+        yescount = count(str,'YES ');
+        
+        if yescount > 1 || nocount > 1
+            taxonomy = 'NaN';
+            address = 'NaN';
+            city = 'NaN';
+            state = 'NaN';
+            entity = 'NaN';
+            zip = 'NaN';
+            phone = 'NaN';
+        else
+            NPI = extractAfter(str,'NPI Name Type Taxonomy Address PECOS     ');
+            NPI = char(NPI);
+            NPI = NPI(1:10);
+
+            url_api = ['https://npiregistry.cms.hhs.gov/api/?number=' NPI '&enumeration_type=&taxonomy_description=&first_name=&last_name=&organization_name=&address_purpose=&city=&state=&postal_code=&country_code=&limit=&skip=&version=2.0'];
+            s = webread(url_api);
+            s = s.results;
+            
+           
+          
+            taxonomy = s.taxonomies.desc;
+            address = s.addresses.address_1;
+            city = s.addresses.city;
+            state = s.addresses.state;
+            zip = s.addresses.postal_code;
+                zip = zip(1:5);
+            phone = s.addresses.telephone_number;
+            
+        end
+        
+    catch
+        taxonomy = 'NaN';
+        entity = 'NaN';
+        address = 'NaN';
+        city = 'NaN';
+        state = 'NaN';
+        zip = 'NaN';
+        phone = 'NaN';
+    end
+    
+    taxonomy = convertCharsToStrings(taxonomy);
+    address = convertCharsToStrings(address);
+    city = convertCharsToStrings(city);
+    state = convertCharsToStrings(state);
+    zip = convertCharsToStrings(zip);
+    phone = convertCharsToStrings(phone);
+
+    taxonomies = [taxonomies; taxonomy];
+    addresses = [addresses; address];
+    cities = [cities; city];
+    states = [states; state];
+    zips = [zips; zip];
+    phones = [phones; phone];
+    
+    if address == 'NaN'
+        fail = fail + 1;
+    else
+        success = success +1;
+    end
+    perc = (i/n)*100;
+    fprintf('\nFinding data for %s....',names(i))
+    acc = (success/(success+fail))*100;
+    fprintf('\nSuccess Rate: %.2f%%                                       Progress: %.2f%%',acc,perc);
+    
+end
